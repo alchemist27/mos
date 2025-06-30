@@ -1,31 +1,33 @@
 import { NextResponse } from 'next/server'
-import { getStoredAccessToken } from '@/lib/tokenStore'
+import { getStoredAccessToken, getStoredRefreshToken, isAccessTokenValid, getTokenStoreInfo } from '@/lib/tokenStore'
 
 export async function GET() {
   try {
-    const token = await getStoredAccessToken()
-    
-    if (!token) {
-      return NextResponse.json({
-        valid: false,
-        message: '저장된 토큰이 없습니다.'
-      })
+    const accessToken = await getStoredAccessToken()
+    const refreshToken = await getStoredRefreshToken()
+    const isValid = await isAccessTokenValid()
+    const storeInfo = await getTokenStoreInfo()
+
+    const status = {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      isValid: isValid,
+      expiresAt: accessToken ? new Date(accessToken.expires_at).toLocaleString('ko-KR') : null,
+      storeInfo: storeInfo
     }
-    
-    const timeLeft = token.expires_at - Date.now()
-    const minutesLeft = Math.floor(timeLeft / (1000 * 60))
-    
-    return NextResponse.json({
-      valid: true,
-      expiresAt: token.expires_at,
-      minutesLeft: minutesLeft,
-      message: `토큰이 ${minutesLeft}분 후 만료됩니다.`
-    })
-    
+
+    console.log('📊 토큰 상태 조회:', status)
+
+    return NextResponse.json(status)
   } catch (error: any) {
-    console.error('토큰 상태 확인 실패:', error)
+    console.error('❌ 토큰 상태 조회 실패:', error)
     return NextResponse.json(
-      { error: error.message || '토큰 상태 확인 실패' },
+      { 
+        error: error.message,
+        hasAccessToken: false,
+        hasRefreshToken: false,
+        isValid: false
+      },
       { status: 500 }
     )
   }
