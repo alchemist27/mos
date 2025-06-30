@@ -6,7 +6,8 @@ export async function GET() {
     const client = new Cafe24Client()
     // 배포된 URL을 직접 사용 (환경변수 undefined 문제 해결)
     const redirectUri = process.env.CAFE24_REDIRECT_URI || 'https://mos-omega.vercel.app/api/auth/callback'
-    const scope = 'mall.read_category mall.read_product mall.write_product mall.read_order mall.write_order'
+    // 카페24 개발자센터에서 설정된 권한에 맞춰 scope 수정
+    const scope = 'mall.read_category mall.read_product mall.read_community mall.write_community'
     
     const authUrl = client.getAuthUrl(redirectUri, scope)
     
