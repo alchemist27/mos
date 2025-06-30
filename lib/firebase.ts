@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase 설정
@@ -11,8 +11,13 @@ const firebaseConfig = {
   appId: process.env.FIREBASE_APP_ID
 };
 
-// Firebase 앱 초기화
-const app = initializeApp(firebaseConfig);
+// Firebase 앱 초기화 (중복 초기화 방지)
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
+}
 
 // Firestore 데이터베이스 초기화
 export const db = getFirestore(app);
