@@ -5,15 +5,25 @@ import { useState, useEffect } from 'react'
 export default function Home() {
   const [tokenStatus, setTokenStatus] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // 토큰 상태 확인
   const checkTokenStatus = async () => {
     try {
+      setError(null)
       const response = await fetch('/api/token/status')
       const data = await response.json()
+      
+      if (data.storeInfo?.permissionDenied) {
+        setError('Firebase 권한 오류: Firestore 보안 규칙을 확인하세요.')
+      } else if (data.storeInfo?.configError) {
+        setError('Firebase 설정 오류: 환경변수를 확인하세요.')
+      }
+      
       setTokenStatus(data)
     } catch (error) {
       console.error('토큰 상태 확인 실패:', error)
+      setError('토큰 상태 확인 중 오류가 발생했습니다.')
     }
   }
 
@@ -80,6 +90,64 @@ export default function Home() {
         <p style={{ color: '#666', marginBottom: '2rem' }}>
           카페24 Admin API 토큰 관리 및 자동 갱신 시스템
         </p>
+
+        {/* 에러 메시지 표시 */}
+        {error && (
+          <div style={{ 
+            backgroundColor: '#f8d7da', 
+            color: '#721c24',
+            padding: '1rem', 
+            borderRadius: '4px',
+            marginBottom: '2rem',
+            border: '1px solid #f5c6cb'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0' }}>🚫 오류 발생</h4>
+            <p style={{ margin: 0 }}>{error}</p>
+            {error.includes('Firebase 권한') && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                <strong>해결 방법:</strong>
+                <ol style={{ margin: '0.5rem 0 0 1rem', paddingLeft: '1rem' }}>
+                  <li>Firebase Console → Firestore Database → Rules로 이동</li>
+                  <li>다음 규칙을 추가하세요:</li>
+                </ol>
+                <pre style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  padding: '0.5rem', 
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  marginTop: '0.5rem',
+                  overflow: 'auto'
+                }}>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /cafe24_tokens/{document} {
+      allow read, write: if true;
+    }
+  }
+}`}
+                </pre>
+              </div>
+            )}
+            {error.includes('Firebase 설정') && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                <strong>해결 방법:</strong>
+                <ol style={{ margin: '0.5rem 0 0 1rem', paddingLeft: '1rem' }}>
+                  <li>Vercel Dashboard → Project Settings → Environment Variables로 이동</li>
+                  <li>다음 환경변수들을 설정하세요:</li>
+                </ol>
+                <ul style={{ margin: '0.5rem 0 0 1rem', paddingLeft: '1rem', fontSize: '0.8rem' }}>
+                  <li>FIREBASE_API_KEY</li>
+                  <li>FIREBASE_AUTH_DOMAIN</li>
+                  <li>FIREBASE_PROJECT_ID</li>
+                  <li>FIREBASE_STORAGE_BUCKET</li>
+                  <li>FIREBASE_MESSAGING_SENDER_ID</li>
+                  <li>FIREBASE_APP_ID</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 토큰 상태 표시 */}
         <div style={{ 
@@ -165,7 +233,7 @@ export default function Home() {
           <ul style={{ paddingLeft: '1.5rem' }}>
             <li>토큰은 자동으로 30분마다 상태 확인됩니다</li>
             <li>만료 10분 전에 자동으로 갱신됩니다</li>
-            <li>토큰 정보는 로컬 파일에 안전하게 저장됩니다</li>
+            <li>토큰 정보는 Firebase Firestore에 안전하게 저장됩니다</li>
             <li>매일 자정에 토큰 상태가 로그에 기록됩니다</li>
           </ul>
         </div>

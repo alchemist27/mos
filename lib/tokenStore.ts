@@ -6,15 +6,35 @@ import { StoredToken } from './types';
 const TOKENS_COLLECTION = 'cafe24_tokens';
 const TOKEN_DOC_ID = 'main_token';
 
+// Firebase 권한 오류 체크 함수
+function isPermissionError(error: any): boolean {
+  return error?.code === 'permission-denied' || 
+         error?.message?.includes('PERMISSION_DENIED') ||
+         error?.message?.includes('Missing or insufficient permissions');
+}
+
+// Firebase 설정 확인 함수
+function checkFirebaseConfig(): boolean {
+  if (!db) {
+    console.error('🚫 Firebase가 초기화되지 않았습니다. 환경변수를 확인하세요.');
+    return false;
+  }
+  return true;
+}
+
 // Access Token 저장
 export async function saveAccessToken(accessToken: string, expiresIn: number): Promise<void> {
+  if (!checkFirebaseConfig()) {
+    throw new Error('Firebase가 초기화되지 않았습니다. 환경변수를 확인하세요.');
+  }
+
   try {
     const tokenData: StoredToken = {
       access_token: accessToken,
       expires_at: Date.now() + (expiresIn * 1000)
     };
 
-    const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     
     await setDoc(tokenRef, {
       access_token: tokenData,
@@ -26,15 +46,24 @@ export async function saveAccessToken(accessToken: string, expiresIn: number): P
     console.log(`✅ Access Token Firebase 저장 완료 (만료: ${expiresAt})`);
     console.log(`🔥 Firebase 문서: ${TOKENS_COLLECTION}/${TOKEN_DOC_ID}`);
   } catch (error: any) {
-    console.error('❌ Access Token Firebase 저장 실패:', error);
-    throw error;
+    if (isPermissionError(error)) {
+      console.error('🚫 Firebase 권한 오류 - Firestore 보안 규칙을 확인하세요:', error.message);
+      throw new Error('Firebase 권한이 없습니다. Firestore 보안 규칙을 확인하세요.');
+    } else {
+      console.error('❌ Access Token Firebase 저장 실패:', error);
+      throw error;
+    }
   }
 }
 
 // Access Token 조회
 export async function getStoredAccessToken(): Promise<StoredToken | null> {
+  if (!checkFirebaseConfig()) {
+    return null;
+  }
+
   try {
-    const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     const docSnap = await getDoc(tokenRef);
     
     if (!docSnap.exists()) {
@@ -60,15 +89,24 @@ export async function getStoredAccessToken(): Promise<StoredToken | null> {
     console.log(`✅ Access Token Firebase 조회 성공 (만료: ${expiresAt})`);
     return tokenData;
   } catch (error: any) {
-    console.error('❌ Access Token Firebase 조회 실패:', error);
-    return null;
+    if (isPermissionError(error)) {
+      console.error('🚫 Firebase 권한 오류 - Firestore 보안 규칙을 확인하세요:', error.message);
+      return null;
+    } else {
+      console.error('❌ Access Token Firebase 조회 실패:', error);
+      return null;
+    }
   }
 }
 
 // Refresh Token 저장
 export async function saveRefreshToken(refreshToken: string): Promise<void> {
+  if (!checkFirebaseConfig()) {
+    throw new Error('Firebase가 초기화되지 않았습니다. 환경변수를 확인하세요.');
+  }
+
   try {
-    const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     
     await updateDoc(tokenRef, {
       refresh_token: refreshToken,
@@ -80,13 +118,16 @@ export async function saveRefreshToken(refreshToken: string): Promise<void> {
   } catch (error: any) {
     // 문서가 없는 경우 새로 생성
     if (error.code === 'not-found') {
-      const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+      const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
       await setDoc(tokenRef, {
         refresh_token: refreshToken,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
       console.log('✅ Refresh Token Firebase 새 문서 생성 및 저장 완료');
+    } else if (isPermissionError(error)) {
+      console.error('🚫 Firebase 권한 오류 - Firestore 보안 규칙을 확인하세요:', error.message);
+      throw new Error('Firebase 권한이 없습니다. Firestore 보안 규칙을 확인하세요.');
     } else {
       console.error('❌ Refresh Token Firebase 저장 실패:', error);
       throw error;
@@ -96,8 +137,12 @@ export async function saveRefreshToken(refreshToken: string): Promise<void> {
 
 // Refresh Token 조회
 export async function getStoredRefreshToken(): Promise<string | null> {
+  if (!checkFirebaseConfig()) {
+    return null;
+  }
+
   try {
-    const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     const docSnap = await getDoc(tokenRef);
     
     if (!docSnap.exists()) {
@@ -114,8 +159,13 @@ export async function getStoredRefreshToken(): Promise<string | null> {
     console.log('✅ Refresh Token Firebase 조회 성공');
     return data.refresh_token;
   } catch (error: any) {
-    console.error('❌ Refresh Token Firebase 조회 실패:', error);
-    return null;
+    if (isPermissionError(error)) {
+      console.error('🚫 Firebase 권한 오류 - Firestore 보안 규칙을 확인하세요:', error.message);
+      return null;
+    } else {
+      console.error('❌ Refresh Token Firebase 조회 실패:', error);
+      return null;
+    }
   }
 }
 
@@ -127,8 +177,19 @@ export async function isAccessTokenValid(): Promise<boolean> {
 
 // 디버깅용: Firebase 토큰 정보 조회
 export async function getTokenStoreInfo(): Promise<any> {
+  if (!checkFirebaseConfig()) {
+    return {
+      provider: 'Firebase Firestore',
+      collection: TOKENS_COLLECTION,
+      document: TOKEN_DOC_ID,
+      exists: false,
+      error: 'Firebase가 초기화되지 않았습니다. 환경변수를 확인하세요.',
+      configError: true
+    };
+  }
+
   try {
-    const tokenRef = doc(db, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     const docSnap = await getDoc(tokenRef);
     
     if (!docSnap.exists()) {
@@ -152,12 +213,23 @@ export async function getTokenStoreInfo(): Promise<any> {
       created: data.created_at
     };
   } catch (error: any) {
-    return {
-      provider: 'Firebase Firestore',
-      collection: TOKENS_COLLECTION,
-      document: TOKEN_DOC_ID,
-      exists: false,
-      error: error.message
-    };
+    if (isPermissionError(error)) {
+      return {
+        provider: 'Firebase Firestore',
+        collection: TOKENS_COLLECTION,
+        document: TOKEN_DOC_ID,
+        exists: false,
+        error: 'Firebase 권한 오류 - Firestore 보안 규칙을 확인하세요',
+        permissionDenied: true
+      };
+    } else {
+      return {
+        provider: 'Firebase Firestore',
+        collection: TOKENS_COLLECTION,
+        document: TOKEN_DOC_ID,
+        exists: false,
+        error: error.message
+      };
+    }
   }
 } 
