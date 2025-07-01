@@ -29,10 +29,22 @@ export async function saveAccessToken(accessToken: string, expiresIn: number): P
   }
 
   try {
+    // expiresIn 값 검증 및 기본값 설정
+    let validExpiresIn = expiresIn;
+    if (!expiresIn || isNaN(expiresIn) || expiresIn <= 0) {
+      console.warn(`⚠️ 잘못된 expiresIn 값: ${expiresIn}, 기본값 7200초(2시간) 사용`);
+      validExpiresIn = 7200; // 2시간 기본값
+    }
+
     const tokenData: StoredToken = {
       access_token: accessToken,
-      expires_at: Date.now() + (expiresIn * 1000)
+      expires_at: Date.now() + (validExpiresIn * 1000)
     };
+
+    console.log(`📝 토큰 저장 정보:
+- Access Token: ${accessToken.substring(0, 10)}...
+- Expires In: ${validExpiresIn}초
+- Expires At: ${new Date(tokenData.expires_at).toLocaleString('ko-KR')}`);
 
     const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
     
@@ -173,6 +185,37 @@ export async function getStoredRefreshToken(): Promise<string | null> {
 export async function isAccessTokenValid(): Promise<boolean> {
   const token = await getStoredAccessToken();
   return token !== null;
+}
+
+// 잘못된 토큰 데이터 정리 (NaN expires_at 등)
+export async function cleanupInvalidTokenData(): Promise<void> {
+  if (!checkFirebaseConfig()) {
+    return;
+  }
+
+  try {
+    const tokenRef = doc(db!, TOKENS_COLLECTION, TOKEN_DOC_ID);
+    const docSnap = await getDoc(tokenRef);
+    
+    if (!docSnap.exists()) {
+      console.log('ℹ️ 정리할 토큰 문서 없음');
+      return;
+    }
+
+    const data = docSnap.data();
+    const accessTokenData = data.access_token;
+    
+    // expires_at이 NaN인 경우 문서 삭제
+    if (accessTokenData && isNaN(accessTokenData.expires_at)) {
+      console.log('🧹 잘못된 토큰 데이터 발견, 정리 중...');
+      await setDoc(tokenRef, {
+        updated_at: new Date().toISOString()
+      });
+      console.log('✅ 잘못된 토큰 데이터 정리 완료');
+    }
+  } catch (error: any) {
+    console.error('❌ 토큰 데이터 정리 실패:', error);
+  }
 }
 
 // 디버깅용: Firebase 토큰 정보 조회

@@ -44,6 +44,11 @@ class Cafe24Client {
       redirect_uri: redirectUri
     });
 
+    console.log(`🔗 카페24 토큰 요청:
+- URL: ${tokenUrl}
+- Grant Type: authorization_code
+- Redirect URI: ${redirectUri}`);
+
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers,
@@ -52,8 +57,18 @@ class Cafe24Client {
 
     const data = await response.json();
 
+    console.log(`📥 카페24 토큰 응답:
+- Status: ${response.status}
+- Response: ${JSON.stringify(data, null, 2)}`);
+
     if (!response.ok) {
       throw new Error(`토큰 발급 실패: ${data.error_description || data.error}`);
+    }
+
+    // expires_in 값 검증
+    if (!data.expires_in || isNaN(data.expires_in)) {
+      console.warn(`⚠️ 카페24에서 받은 expires_in 값이 잘못됨: ${data.expires_in}`);
+      data.expires_in = 7200; // 기본값 2시간
     }
 
     return data;
