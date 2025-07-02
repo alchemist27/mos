@@ -18,18 +18,29 @@ function validateFirebaseConfig() {
                      (typeof window === 'undefined') && 
                      (!process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'production');
   
-  // 디버깅: 실제 환경변수 값들 확인
-  if (!isBuildTime) {
-    console.log('🔍 Firebase 환경변수 디버깅:');
-    console.log('🔍 process.env 확인:');
-    requiredVars.forEach(varName => {
-      const value = process.env[varName];
-      console.log(`  ${varName}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
-      if (value) {
-        console.log(`    실제값: ${value.substring(0, 10)}...`);
-      }
-    });
-  }
+  // 항상 디버깅 정보 출력 (브라우저에서도 확인 가능하도록)
+  console.log('🔍 Firebase 환경변수 디버깅:');
+  console.log('🔍 현재 환경:', {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    isBrowser: typeof window !== 'undefined',
+    isBuildTime
+  });
+  console.log('🔍 process.env 확인:');
+  requiredVars.forEach(varName => {
+    const value = process.env[varName];
+    console.log(`  ${varName}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
+    if (value) {
+      console.log(`    실제값: ${value.substring(0, 20)}...`);
+    }
+  });
+
+  // 추가: 모든 FIREBASE 관련 환경변수 확인
+  console.log('🔍 모든 FIREBASE 관련 환경변수:');
+  Object.keys(process.env).filter(key => key.includes('FIREBASE')).forEach(key => {
+    const value = process.env[key];
+    console.log(`  ${key}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
+  });
 
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
@@ -49,9 +60,7 @@ function validateFirebaseConfig() {
     }
   }
   
-  if (!isBuildTime) {
-    console.log('✅ Firebase 환경변수 확인 완료');
-  }
+  console.log('✅ Firebase 환경변수 확인 완료');
   return true;
 }
 
@@ -74,17 +83,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:dummy'
 };
 
-// 빌드 시점이 아닐 때만 로그 출력
-if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-  console.log('🔍 최종 Firebase 설정:', {
-    apiKey: firebaseConfig.apiKey ? '✅ 설정됨' : '❌ 누락',
-    authDomain: firebaseConfig.authDomain ? '✅ 설정됨' : '❌ 누락',
-    projectId: firebaseConfig.projectId ? '✅ 설정됨' : '❌ 누락',
-    storageBucket: firebaseConfig.storageBucket ? '✅ 설정됨' : '❌ 누락',
-    messagingSenderId: firebaseConfig.messagingSenderId ? '✅ 설정됨' : '❌ 누락',
-    appId: firebaseConfig.appId ? '✅ 설정됨' : '❌ 누락'
-  });
-}
+// 항상 Firebase 설정 로그 출력
+console.log('🔍 최종 Firebase 설정:', {
+  apiKey: firebaseConfig.apiKey ? (firebaseConfig.apiKey === 'build-time-dummy' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락',
+  authDomain: firebaseConfig.authDomain ? (firebaseConfig.authDomain === 'build-time-dummy.firebaseapp.com' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락',
+  projectId: firebaseConfig.projectId ? (firebaseConfig.projectId === 'build-time-dummy' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락',
+  storageBucket: firebaseConfig.storageBucket ? (firebaseConfig.storageBucket === 'build-time-dummy.appspot.com' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락',
+  messagingSenderId: firebaseConfig.messagingSenderId ? (firebaseConfig.messagingSenderId === '123456789' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락',
+  appId: firebaseConfig.appId ? (firebaseConfig.appId === '1:123456789:web:dummy' ? '❌ 더미값' : '✅ 설정됨') : '❌ 누락'
+});
 
 // Firebase 앱 초기화 (중복 초기화 방지)
 let app;
@@ -94,39 +101,29 @@ let storage: FirebaseStorage | null = null;
 try {
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
-    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-      console.log('🔥 Firebase 앱 초기화 완료');
-    }
+    console.log('🔥 Firebase 앱 초기화 완료');
   } else {
     app = getApps()[0];
-    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-      console.log('🔥 기존 Firebase 앱 사용');
-    }
+    console.log('🔥 기존 Firebase 앱 사용');
   }
 
   // 실제 환경변수가 있을 때만 서비스 초기화
   if (isConfigValid && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'build-time-dummy') {
     // Firestore 데이터베이스 초기화
     db = getFirestore(app);
-    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-      console.log('🗄️ Firestore 데이터베이스 초기화 완료');
-    }
+    console.log('🗄️ Firestore 데이터베이스 초기화 완료');
 
     // Firebase Storage 초기화
     storage = getStorage(app);
-    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-      console.log('📁 Firebase Storage 초기화 완료');
-    }
+    console.log('📁 Firebase Storage 초기화 완료');
   } else {
-    if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-      console.warn('⚠️ Firebase 서비스 초기화 건너뜀 (빌드 시점 또는 환경변수 누락)');
-    }
+    console.warn('⚠️ Firebase 서비스 초기화 건너뜀 (빌드 시점 또는 환경변수 누락)');
+    console.warn('⚠️ isConfigValid:', isConfigValid);
+    console.warn('⚠️ API_KEY:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
   }
 } catch (error: any) {
   // 빌드 시점에서는 에러를 완전히 무시
-  if (typeof window !== 'undefined' || process.env.NODE_ENV === 'development') {
-    console.error('❌ Firebase 초기화 실패:', error);
-  }
+  console.error('❌ Firebase 초기화 실패:', error);
 }
 
 export { db, storage };
