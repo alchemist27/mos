@@ -86,6 +86,26 @@ export default function Home() {
     }
   }
 
+  // 상품 목록 테스트
+  const testProducts = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/test/products')
+      const data = await response.json()
+      
+      if (response.ok) {
+        alert(`상품 목록 조회 성공!\n\n상품 개수: ${data.productCount}개\n응답 시간: ${data.timestamp}`)
+        console.log('카페24 상품 목록:', data)
+      } else {
+        alert(`상품 목록 조회 실패: ${data.error}`)
+      }
+    } catch (error) {
+      alert('상품 목록 조회 실패')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     checkTokenStatus()
   }, [])
@@ -260,6 +280,22 @@ service cloud.firestore {
             }}
           >
             🧪 API 테스트
+          </button>
+
+          <button 
+            onClick={testProducts}
+            disabled={loading || !tokenStatus?.valid}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#fd7e14',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (loading || !tokenStatus?.valid) ? 'not-allowed' : 'pointer',
+              opacity: (loading || !tokenStatus?.valid) ? 0.6 : 1
+            }}
+          >
+            🛍️ 상품 목록 테스트
           </button>
         </div>
 

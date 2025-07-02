@@ -158,6 +158,7 @@ class Cafe24Client {
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      'X-Cafe24-Api-Version': '2024-06-01', // 카페24 API 버전 (최신 버전)
       ...options.headers
     };
 
@@ -175,7 +176,8 @@ class Cafe24Client {
       const newAccessToken = await this.refreshAccessToken();
       const newHeaders = {
         ...headers,
-        'Authorization': `Bearer ${newAccessToken.access_token}`
+        'Authorization': `Bearer ${newAccessToken.access_token}`,
+        'X-Cafe24-Api-Version': '2024-06-01'
       };
 
       const retryResponse = await fetch(url, {
