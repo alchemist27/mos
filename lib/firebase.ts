@@ -1,6 +1,10 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import getConfig from 'next/config';
+
+// Next.js 런타임 설정 가져오기
+const { publicRuntimeConfig } = getConfig() || { publicRuntimeConfig: {} };
 
 // Firebase 설정 검증 함수
 function validateFirebaseConfig() {
@@ -15,12 +19,22 @@ function validateFirebaseConfig() {
 
   // 디버깅: 실제 환경변수 값들 확인
   console.log('🔍 Firebase 환경변수 디버깅:');
+  console.log('🔍 process.env 확인:');
   requiredVars.forEach(varName => {
     const value = process.env[varName];
     console.log(`  ${varName}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
   });
 
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+  console.log('🔍 publicRuntimeConfig 확인:');
+  requiredVars.forEach(varName => {
+    const value = publicRuntimeConfig[varName];
+    console.log(`  ${varName}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
+  });
+
+  // process.env에서 먼저 확인, 없으면 publicRuntimeConfig에서 확인
+  const missing = requiredVars.filter(varName => {
+    return !process.env[varName] && !publicRuntimeConfig[varName];
+  });
   
   if (missing.length > 0) {
     // 런타임에만 에러 발생 (빌드 시에는 경고만)
@@ -42,15 +56,24 @@ function validateFirebaseConfig() {
 // 환경변수 검증
 const isConfigValid = validateFirebaseConfig();
 
-// Firebase 설정
+// Firebase 설정 (process.env 우선, 없으면 publicRuntimeConfig 사용)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-key',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dummy-project',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy-bucket',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'dummy-sender',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'dummy-app'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-key',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dummy-project',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy-bucket',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'dummy-sender',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || publicRuntimeConfig.NEXT_PUBLIC_FIREBASE_APP_ID || 'dummy-app'
 };
+
+console.log('🔍 최종 Firebase 설정:', {
+  apiKey: firebaseConfig.apiKey ? '✅ 설정됨' : '❌ 누락',
+  authDomain: firebaseConfig.authDomain ? '✅ 설정됨' : '❌ 누락',
+  projectId: firebaseConfig.projectId ? '✅ 설정됨' : '❌ 누락',
+  storageBucket: firebaseConfig.storageBucket ? '✅ 설정됨' : '❌ 누락',
+  messagingSenderId: firebaseConfig.messagingSenderId ? '✅ 설정됨' : '❌ 누락',
+  appId: firebaseConfig.appId ? '✅ 설정됨' : '❌ 누락'
+});
 
 // Firebase 앱 초기화 (중복 초기화 방지)
 let app;
