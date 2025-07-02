@@ -12,11 +12,13 @@ export default function TestPage() {
     memberId: '',
     nickName: '',
     isSecret: false,
-    isNotice: false
+    isNotice: false,
+    category: '1' // 카테고리 선택 추가
   })
   
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<any>(null)
+  const [attachedFiles, setAttachedFiles] = useState<Array<{name: string, url: string}>>([]) // 첨부파일 상태 추가
 
   // 폼 데이터 업데이트
   const updateFormData = (field: string, value: string | boolean) => {
@@ -24,6 +26,42 @@ export default function TestPage() {
       ...prev,
       [field]: value
     }))
+  }
+
+  // 파일 업로드 핸들러
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    const file = files[0]
+    
+    // 파일 크기 체크 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      return
+    }
+
+    // 파일 타입 체크
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain']
+    if (!allowedTypes.includes(file.type)) {
+      alert('지원하지 않는 파일 형식입니다. (이미지, PDF, 텍스트 파일만 가능)')
+      return
+    }
+
+    // 실제 업로드 로직 (임시로 로컬 URL 생성)
+    const fileUrl = URL.createObjectURL(file)
+    const newFile = {
+      name: file.name,
+      url: `https://example.com/uploads/${Date.now()}_${file.name}` // 실제로는 업로드된 URL
+    }
+
+    setAttachedFiles(prev => [...prev, newFile])
+    alert(`파일 "${file.name}"이 업로드되었습니다.`)
+  }
+
+  // 파일 제거
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   // 게시물 업로드 함수
@@ -54,7 +92,7 @@ export default function TestPage() {
             "title": formData.title,
             "content": formData.content,
             "client_ip": "127.0.0.1",
-            "board_category_no": 1,
+            "board_category_no": parseInt(formData.category), // 카테고리 번호 추가
             "secret": formData.isSecret ? "T" : "F",
             "writer_email": formData.writerEmail || "user@example.com",
             "member_id": formData.memberId || "user",
@@ -64,7 +102,11 @@ export default function TestPage() {
             "notice": formData.isNotice ? "T" : "F",
             "fixed": "F",
             "reply": "F",
-            "reply_mail": "N"
+            "reply_mail": "N",
+            // 첨부파일 추가
+            ...(attachedFiles.length > 0 && {
+              "attach_file_urls": attachedFiles
+            })
           }
         ]
       }
@@ -93,8 +135,10 @@ export default function TestPage() {
           memberId: '',
           nickName: '',
           isSecret: false,
-          isNotice: false
+          isNotice: false,
+          category: '1'
         })
+        setAttachedFiles([])
       }
       
     } catch (error: any) {
@@ -137,6 +181,29 @@ export default function TestPage() {
 
         {/* 게시물 작성 폼 */}
         <div style={{ marginBottom: '2rem' }}>
+          {/* 카테고리 선택 */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
+              문의 유형 <span style={{ color: '#dc3545' }}>*</span>
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => updateFormData('category', e.target.value)}
+              style={{
+                padding: '0.75rem',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                width: '100%',
+                fontSize: '1rem',
+                boxSizing: 'border-box',
+                backgroundColor: 'white'
+              }}
+            >
+              <option value="1">💰 견적문의</option>
+              <option value="2">🎨 시안요청</option>
+            </select>
+          </div>
+
           {/* 작성자 (필수) */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
@@ -199,6 +266,64 @@ export default function TestPage() {
               }}
               placeholder="게시물 내용을 입력하세요"
             />
+          </div>
+
+          {/* 첨부파일 */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
+              첨부파일
+            </label>
+            <input
+              type="file"
+              onChange={handleFileUpload}
+              accept="image/*,application/pdf,.txt"
+              style={{
+                padding: '0.5rem',
+                border: '2px solid #e9ecef',
+                borderRadius: '8px',
+                width: '100%',
+                fontSize: '1rem',
+                boxSizing: 'border-box'
+              }}
+            />
+            <small style={{ color: '#666', display: 'block', marginTop: '0.5rem' }}>
+              이미지, PDF, 텍스트 파일만 업로드 가능 (최대 10MB)
+            </small>
+            
+            {/* 업로드된 파일 목록 */}
+            {attachedFiles.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <h5 style={{ color: '#333', marginBottom: '0.5rem' }}>첨부된 파일:</h5>
+                {attachedFiles.map((file, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '4px',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <span style={{ fontSize: '0.9rem' }}>📎 {file.name}</span>
+                    <button
+                      onClick={() => removeFile(index)}
+                      style={{
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      제거
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 선택 항목들 */}
@@ -334,7 +459,8 @@ export default function TestPage() {
               </h4>
               {response.success && (
                 <p style={{ margin: 0, color: '#155724' }}>
-                  게시물이 5번 게시판에 등록되었습니다.
+                  게시물이 5번 게시판 "{formData.category === '1' ? '견적문의' : '시안요청'}" 카테고리에 등록되었습니다.
+                  {attachedFiles.length > 0 && ` (첨부파일 ${attachedFiles.length}개 포함)`}
                 </p>
               )}
             </div>
@@ -369,8 +495,11 @@ export default function TestPage() {
 
         {/* 안내 */}
         <div style={{ marginTop: '3rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
-          <p style={{ margin: 0 }}>
+          <p style={{ margin: 0, marginBottom: '0.5rem' }}>
             ⚠️ <span style={{ color: '#dc3545' }}>*</span> 표시된 항목은 필수 입력 항목입니다.
+          </p>
+          <p style={{ margin: 0 }}>
+            📎 첨부파일은 이미지, PDF, 텍스트 파일만 업로드 가능합니다.
           </p>
         </div>
       </div>
