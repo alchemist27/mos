@@ -66,6 +66,26 @@ export default function Home() {
     }
   }
 
+  // 카페24 API 테스트
+  const testApi = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/test')
+      const data = await response.json()
+      
+      if (response.ok) {
+        alert(`API 테스트 성공!\n\n쇼핑몰: ${data.data?.shop?.shop_name || '정보 없음'}\n응답 시간: ${data.timestamp}`)
+        console.log('카페24 API 응답:', data)
+      } else {
+        alert(`API 테스트 실패: ${data.error}`)
+      }
+    } catch (error) {
+      alert('API 테스트 실패')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     checkTokenStatus()
   }, [])
@@ -225,7 +245,43 @@ service cloud.firestore {
           >
             📊 상태 새로고침
           </button>
+
+          <button 
+            onClick={testApi}
+            disabled={loading || !tokenStatus?.valid}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#17a2b8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (loading || !tokenStatus?.valid) ? 'not-allowed' : 'pointer',
+              opacity: (loading || !tokenStatus?.valid) ? 0.6 : 1
+            }}
+          >
+            🧪 API 테스트
+          </button>
         </div>
+
+        {/* 추가 기능 */}
+        {tokenStatus?.valid && (
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <a 
+              href="/test" 
+              style={{
+                display: 'inline-block',
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#ffc107',
+                color: '#212529',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontWeight: 'bold'
+              }}
+            >
+              🧪 상세 API 테스트 페이지로 이동
+            </a>
+          </div>
+        )}
 
         {/* 정보 섹션 */}
         <div style={{ marginTop: '2rem', fontSize: '0.9rem', color: '#666' }}>
