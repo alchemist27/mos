@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { storage } from '../../lib/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export default function TestPage() {
   // 게시물 폼 상태
@@ -48,15 +50,38 @@ export default function TestPage() {
       return
     }
 
-    // 실제 업로드 로직 (임시로 로컬 URL 생성)
-    const fileUrl = URL.createObjectURL(file)
-    const newFile = {
-      name: file.name,
-      url: `https://example.com/uploads/${Date.now()}_${file.name}` // 실제로는 업로드된 URL
-    }
+    try {
+      // Firebase Storage에 파일 업로드
+      if (!storage) {
+        alert('파일 저장소가 초기화되지 않았습니다.')
+        return
+      }
 
-    setAttachedFiles(prev => [...prev, newFile])
-    alert(`파일 "${file.name}"이 업로드되었습니다.`)
+      // 고유한 파일명 생성
+      const timestamp = Date.now()
+      const fileName = `uploads/${timestamp}_${file.name}`
+      const storageRef = ref(storage, fileName)
+      
+      // 파일 업로드
+      const snapshot = await uploadBytes(storageRef, file)
+      console.log('파일 업로드 완료:', snapshot)
+      
+      // 다운로드 URL 가져오기
+      const downloadURL = await getDownloadURL(snapshot.ref)
+      console.log('다운로드 URL:', downloadURL)
+      
+      const newFile = {
+        name: file.name,
+        url: downloadURL
+      }
+
+      setAttachedFiles(prev => [...prev, newFile])
+      alert(`파일 "${file.name}"이 업로드되었습니다.`)
+      
+    } catch (error) {
+      console.error('파일 업로드 실패:', error)
+      alert('파일 업로드에 실패했습니다. 다시 시도해주세요.')
+    }
   }
 
   // 파일 제거
@@ -104,7 +129,10 @@ export default function TestPage() {
             "reply": "F",
             "reply_mail": "N",
             "reply_user_id": "admin",
-            "reply_status": "C"
+            "reply_status": "C",
+            ...(attachedFiles.length > 0 && {
+              "attach_file_urls": attachedFiles
+            })
           }
         ]
       }

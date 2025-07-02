@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Firebase 설정 검증 함수
 function validateFirebaseConfig() {
@@ -47,6 +48,7 @@ const firebaseConfig = {
 // Firebase 앱 초기화 (중복 초기화 방지)
 let app;
 let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
 if (isConfigValid) {
   try {
@@ -61,6 +63,10 @@ if (isConfigValid) {
     // Firestore 데이터베이스 초기화
     db = getFirestore(app);
     console.log('🗄️ Firestore 데이터베이스 초기화 완료');
+
+    // Firebase Storage 초기화
+    storage = getStorage(app);
+    console.log('📁 Firebase Storage 초기화 완료');
   } catch (error: any) {
     console.error('❌ Firebase 초기화 실패:', error);
     throw error;
@@ -75,5 +81,5 @@ if (isConfigValid) {
   }
 }
 
-export { db };
+export { db, storage };
 export default app; 
