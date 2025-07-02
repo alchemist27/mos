@@ -84,12 +84,25 @@ export async function getStoredAccessToken(): Promise<StoredToken | null> {
     }
 
     const data = docSnap.data();
+    console.log('🔍 Firebase 문서 데이터:', JSON.stringify(data, null, 2));
+    
     if (!data.access_token) {
       console.log('ℹ️ Firebase에 Access Token 없음');
       return null;
     }
 
     const tokenData: StoredToken = data.access_token;
+    
+    console.log('🔍 파싱된 토큰 데이터:', JSON.stringify(tokenData, null, 2));
+    console.log('🔍 현재 시간:', Date.now());
+    console.log('🔍 토큰 만료 시간:', tokenData.expires_at);
+    console.log('🔍 만료까지 남은 시간(분):', Math.floor((tokenData.expires_at - Date.now()) / (1000 * 60)));
+    
+    // expires_at 값 검증
+    if (!tokenData.expires_at || isNaN(tokenData.expires_at)) {
+      console.log('⚠️ expires_at 값이 유효하지 않음:', tokenData.expires_at);
+      return null;
+    }
     
     // 토큰 만료 확인
     if (Date.now() >= tokenData.expires_at) {
