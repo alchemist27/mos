@@ -94,6 +94,7 @@ export default function TestPage() {
             "client_ip": "127.0.0.1",
             "board_category_no": parseInt(formData.category),
             "secret": formData.isSecret ? "T" : "F",
+            "created_date": new Date().toISOString(),
             "writer_email": formData.writerEmail || "sample@sample.com",
             "member_id": formData.memberId || "sampleid",
             "nick_name": formData.nickName || formData.writer,
@@ -104,12 +105,7 @@ export default function TestPage() {
             "reply": "F",
             "reply_mail": "N",
             "reply_user_id": "admin",
-            "reply_status": "C",
-            "category_no": parseInt(formData.category),
-            // 첨부파일 추가 (카페24 공식 형식)
-            ...(attachedFiles.length > 0 && {
-              "attach_file_urls": attachedFiles
-            })
+            "reply_status": "C"
           }
         ]
       }
