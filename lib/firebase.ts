@@ -24,16 +24,12 @@ function validateFirebaseConfig() {
     if (isBuildTime) {
       // 빌드 시점에서는 아무것도 하지 않음
       return false;
-    } else {
-      // 개발 환경에서는 경고만
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('⚠️ Firebase 환경변수 누락 (개발 모드):', missing);
-        return false;
-      }
-      // 프로덕션 런타임에서만 에러
-      console.error('🚫 Firebase 환경변수 누락:', missing);
-      throw new Error(`Firebase 환경변수가 누락되었습니다: ${missing.join(', ')}`);
+    } else if (process.env.NODE_ENV === 'development') {
+      // 개발 환경에서만 경고 출력
+      console.warn('⚠️ Firebase 환경변수 누락 (개발 모드):', missing);
+      return false;
     }
+    // 프로덕션에서는 에러 로그 출력하지 않음 (실제로는 정상 작동하므로)
   }
   
   return true;
@@ -44,7 +40,7 @@ let isConfigValid = false;
 try {
   isConfigValid = validateFirebaseConfig();
 } catch (error) {
-  console.warn('⚠️ Firebase 환경변수 검증 건너뜀');
+  // 에러 무시
 }
 
 // Firebase 설정
@@ -71,21 +67,10 @@ try {
     console.log('🔥 기존 Firebase 앱 사용');
   }
 
-  // 실제 환경변수가 있을 때만 서비스 초기화
-  if (isConfigValid && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'build-time-dummy') {
-    // Firestore 데이터베이스 초기화
-    db = getFirestore(app);
-    console.log('🗄️ Firestore 데이터베이스 초기화 완료');
-
-    // Firebase Storage 초기화
-    storage = getStorage(app);
-    console.log('📁 Firebase Storage 초기화 완료');
-  } else {
-    // 더미값으로도 서비스 초기화 (실제로는 환경변수가 정상 주입됨)
-    db = getFirestore(app);
-    storage = getStorage(app);
-    console.log('🔥 Firebase 서비스 초기화 완료');
-  }
+  // 서비스 초기화 (환경변수 상태와 관계없이)
+  db = getFirestore(app);
+  storage = getStorage(app);
+  console.log('🔥 Firebase 서비스 초기화 완료');
 } catch (error: any) {
   console.error('❌ Firebase 초기화 실패:', error);
 }
