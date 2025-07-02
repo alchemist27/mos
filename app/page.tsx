@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-// 환경변수 테스트 실행
-import '../lib/env-test'
 
 export default function Home() {
   const [tokenStatus, setTokenStatus] = useState<any>(null)
