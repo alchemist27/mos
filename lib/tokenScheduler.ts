@@ -18,8 +18,8 @@ class TokenScheduler {
       return;
     }
 
-    // 매 30분마다 토큰 상태 확인 및 갱신
-    const task1 = cron.schedule('*/30 * * * *', async () => {
+    // 매 6시간마다 토큰 상태 확인 및 갱신 (API 사용량 최소화)
+    const task1 = cron.schedule('0 */6 * * *', async () => {
       await this.checkAndRefreshToken();
     });
 
@@ -31,7 +31,7 @@ class TokenScheduler {
     this.tasks = [task1, task2];
     this.isRunning = true;
     console.log('🚀 토큰 자동 갱신 스케줄러 시작됨');
-    console.log('📅 스케줄: 매 30분마다 토큰 확인, 매일 자정 상태 로그');
+    console.log('📅 스케줄: 매 6시간마다 토큰 확인, 매일 자정 상태 로그');
   }
 
   // 토큰 상태 확인 및 갱신
@@ -47,8 +47,8 @@ class TokenScheduler {
       const timeLeft = token.expires_at - Date.now();
       const minutesLeft = Math.floor(timeLeft / (1000 * 60));
 
-      // 토큰이 10분 이내에 만료되는 경우 갱신
-      if (minutesLeft <= 10) {
+      // 토큰이 30분 이내에 만료되는 경우만 갱신 (스케줄러에서는 여유있게)
+      if (minutesLeft <= 30) {
         console.log(`🔄 토큰이 ${minutesLeft}분 후 만료됩니다. 갱신을 시도합니다...`);
         
         try {

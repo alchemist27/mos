@@ -131,6 +131,22 @@ class Cafe24Client {
       }
     }
 
+    // 토큰이 5분 이내에 만료되는 경우 미리 갱신
+    const timeLeft = token.expires_at - Date.now();
+    const minutesLeft = Math.floor(timeLeft / (1000 * 60));
+    
+    if (minutesLeft <= 5) {
+      console.log(`🔄 토큰이 ${minutesLeft}분 후 만료됩니다. 미리 갱신합니다...`);
+      try {
+        const refreshedToken = await this.refreshAccessToken();
+        return refreshedToken.access_token;
+      } catch (error) {
+        console.warn('⚠️ 토큰 미리 갱신 실패, 기존 토큰 사용:', error);
+        // 갱신 실패해도 기존 토큰이 아직 유효하면 사용
+        return token.access_token;
+      }
+    }
+
     return token.access_token;
   }
 

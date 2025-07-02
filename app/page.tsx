@@ -231,8 +231,8 @@ service cloud.firestore {
         <div style={{ marginTop: '2rem', fontSize: '0.9rem', color: '#666' }}>
           <h4 style={{ color: '#333' }}>ℹ️ 시스템 정보</h4>
           <ul style={{ paddingLeft: '1.5rem' }}>
-            <li>토큰은 자동으로 30분마다 상태 확인됩니다</li>
-            <li>만료 10분 전에 자동으로 갱신됩니다</li>
+            <li>API 요청 시 토큰 만료 5분 전에 자동 갱신됩니다</li>
+            <li>백그라운드에서 6시간마다 토큰 상태를 확인합니다</li>
             <li>토큰 정보는 Firebase Firestore에 안전하게 저장됩니다</li>
             <li>매일 자정에 토큰 상태가 로그에 기록됩니다</li>
           </ul>
