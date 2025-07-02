@@ -8,6 +8,11 @@ export default function TestPage() {
   const [requestBody, setRequestBody] = useState('')
   const [response, setResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  
+  // 게시물 업로드 상태
+  const [boardNo, setBoardNo] = useState('5')
+  const [boardLoading, setBoardLoading] = useState(false)
+  const [boardResponse, setBoardResponse] = useState<any>(null)
 
   // 자주 사용하는 API 엔드포인트들
   const commonEndpoints = [
@@ -56,6 +61,60 @@ export default function TestPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 게시물 업로드 함수
+  const uploadBoardArticle = async () => {
+    setBoardLoading(true)
+    setBoardResponse(null)
+    
+    try {
+      const payload = {
+        "shop_no": 1,
+        "requests": [
+          {
+            "writer": "테스트 작성자",
+            "title": "테스트 게시물 제목",
+            "content": "테스트 게시물 내용입니다. 이것은 API 테스트를 위한 게시물입니다.",
+            "client_ip": "127.0.0.1",
+            "board_category_no": 1,
+            "secret": "F",
+            "writer_email": "test@example.com",
+            "member_id": "testuser",
+            "nick_name": "테스트유저",
+            "deleted": "F",
+            "input_channel": "P",
+            "notice": "F",
+            "fixed": "F",
+            "reply": "F",
+            "reply_mail": "N"
+          }
+        ]
+      }
+      
+      const res = await fetch('/api/test/boards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          boardNo,
+          data: payload
+        })
+      })
+      
+      const data = await res.json()
+      setBoardResponse(data)
+      
+    } catch (error: any) {
+      setBoardResponse({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      })
+    } finally {
+      setBoardLoading(false)
     }
   }
 
@@ -189,6 +248,92 @@ export default function TestPage() {
           >
             {loading ? '⏳ 요청 중...' : '🚀 API 호출'}
           </button>
+        </div>
+
+        {/* 게시물 업로드 테스트 */}
+        <div style={{ 
+          marginBottom: '2rem', 
+          border: '2px solid #007bff', 
+          borderRadius: '8px', 
+          padding: '1.5rem',
+          backgroundColor: '#f8f9ff'
+        }}>
+          <h3 style={{ color: '#007bff', marginBottom: '1rem' }}>📝 게시물 업로드 테스트</h3>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              게시판 번호:
+            </label>
+            <input
+              type="text"
+              value={boardNo}
+              onChange={(e) => setBoardNo(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                width: '200px'
+              }}
+              placeholder="5"
+            />
+            <small style={{ marginLeft: '1rem', color: '#666' }}>
+              (기본값: 5번 게시판)
+            </small>
+          </div>
+
+          <button
+            onClick={uploadBoardArticle}
+            disabled={boardLoading}
+            style={{
+              padding: '0.75rem 2rem',
+              backgroundColor: boardLoading ? '#6c757d' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: boardLoading ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            {boardLoading ? '⏳ 업로드 중...' : '📝 테스트 게시물 업로드'}
+          </button>
+
+          <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+            <strong>테스트 데이터:</strong> 간단한 테스트 게시물이 업로드됩니다.
+            <br />
+            <strong>API 엔드포인트:</strong> POST /api/v2/admin/boards/{boardNo}/articles
+          </div>
+
+          {/* 게시물 업로드 응답 결과 */}
+          {boardResponse && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <h4 style={{ 
+                color: boardResponse.success ? '#28a745' : '#dc3545',
+                marginBottom: '1rem' 
+              }}>
+                {boardResponse.success ? '✅ 게시물 업로드 성공' : '❌ 게시물 업로드 실패'}
+              </h4>
+              
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                padding: '1rem',
+                maxHeight: '300px',
+                overflow: 'auto'
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  fontSize: '0.8rem',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word'
+                }}>
+                  {JSON.stringify(boardResponse, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 응답 결과 */}
