@@ -92,10 +92,10 @@ export default function TestPage() {
             "title": formData.title,
             "content": formData.content,
             "client_ip": "127.0.0.1",
-            "board_category_no": parseInt(formData.category), // 카테고리 번호 추가
+            "board_category_no": parseInt(formData.category),
             "secret": formData.isSecret ? "T" : "F",
-            "writer_email": formData.writerEmail || "user@example.com",
-            "member_id": formData.memberId || "user",
+            "writer_email": formData.writerEmail || "sample@sample.com",
+            "member_id": formData.memberId || "sampleid",
             "nick_name": formData.nickName || formData.writer,
             "deleted": "F",
             "input_channel": "P",
@@ -103,7 +103,10 @@ export default function TestPage() {
             "fixed": "F",
             "reply": "F",
             "reply_mail": "N",
-            // 첨부파일 추가
+            "reply_user_id": "admin",
+            "reply_status": "C",
+            "category_no": parseInt(formData.category),
+            // 첨부파일 추가 (카페24 공식 형식)
             ...(attachedFiles.length > 0 && {
               "attach_file_urls": attachedFiles
             })
