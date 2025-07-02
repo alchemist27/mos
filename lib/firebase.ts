@@ -13,6 +13,13 @@ function validateFirebaseConfig() {
     'NEXT_PUBLIC_FIREBASE_APP_ID'
   ];
 
+  // 디버깅: 실제 환경변수 값들 확인
+  console.log('🔍 Firebase 환경변수 디버깅:');
+  requiredVars.forEach(varName => {
+    const value = process.env[varName];
+    console.log(`  ${varName}: ${value ? '✅ 설정됨' : '❌ 누락'} (${value ? 'length: ' + value.length : 'undefined'})`);
+  });
+
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
