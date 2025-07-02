@@ -162,12 +162,22 @@ class Cafe24Client {
       ...options.headers
     };
 
+    console.log(`🚀 카페24 API 요청:
+- URL: ${url}
+- Method: ${options.method || 'GET'}
+- Headers: ${JSON.stringify(headers, null, 2)}
+- Body: ${options.body || 'N/A'}`);
+
     const response = await fetch(url, {
       ...options,
       headers
     });
 
     const data = await response.json();
+
+    console.log(`📥 카페24 API 응답:
+- Status: ${response.status} ${response.statusText}
+- Response: ${JSON.stringify(data, null, 2)}`);
 
     // 토큰 만료 에러인 경우 갱신 후 재시도
     if (response.status === 401 && data.error === 'invalid_token') {
@@ -185,11 +195,27 @@ class Cafe24Client {
         headers: newHeaders
       });
 
-      return await retryResponse.json();
+      const retryData = await retryResponse.json();
+      
+      console.log(`🔄 재시도 응답:
+- Status: ${retryResponse.status} ${retryResponse.statusText}
+- Response: ${JSON.stringify(retryData, null, 2)}`);
+
+      return retryData;
     }
 
     if (!response.ok) {
-      throw new Error(`API 요청 실패: ${data.error_description || data.error || response.statusText}`);
+      // 더 자세한 오류 정보 포함
+      const errorMessage = `API 요청 실패: ${response.status} ${response.statusText}`;
+      const detailedError = new Error(errorMessage);
+      (detailedError as any).response = {
+        status: response.status,
+        statusText: response.statusText,
+        data: data,
+        url: url,
+        method: options.method || 'GET'
+      };
+      throw detailedError;
     }
 
     return data;
