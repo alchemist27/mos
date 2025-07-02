@@ -94,7 +94,6 @@ export default function TestPage() {
             "client_ip": "127.0.0.1",
             "board_category_no": parseInt(formData.category),
             "secret": formData.isSecret ? "T" : "F",
-            "created_date": new Date().toISOString(),
             "writer_email": formData.writerEmail || "sample@sample.com",
             "member_id": formData.memberId || "sampleid",
             "nick_name": formData.nickName || formData.writer,
