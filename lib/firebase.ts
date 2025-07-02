@@ -13,6 +13,9 @@ function validateFirebaseConfig() {
     'NEXT_PUBLIC_FIREBASE_APP_ID'
   ];
 
+  // 빌드 시점 체크
+  const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_ENV;
+  
   // 디버깅: 실제 환경변수 값들 확인
   console.log('🔍 Firebase 환경변수 디버깅:');
   console.log('🔍 process.env 확인:');
@@ -27,15 +30,14 @@ function validateFirebaseConfig() {
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
-    // 런타임에만 에러 발생 (빌드 시에는 경고만)
-    const isRuntime = typeof window !== 'undefined' || process.env.VERCEL_ENV;
-    
-    if (isRuntime && process.env.NODE_ENV === 'production') {
+    if (isBuildTime) {
+      // 빌드 시점에서는 경고만 출력하고 계속 진행
+      console.warn('⚠️ Firebase 환경변수 누락 (빌드 시점):', missing);
+      return false;
+    } else {
+      // 런타임에서는 에러 발생
       console.error('🚫 Firebase 환경변수 누락:', missing);
       throw new Error(`Firebase 환경변수가 누락되었습니다: ${missing.join(', ')}`);
-    } else {
-      console.warn('⚠️ Firebase 환경변수 누락 (개발/빌드 모드):', missing);
-      return false;
     }
   }
   
@@ -46,14 +48,14 @@ function validateFirebaseConfig() {
 // 환경변수 검증
 const isConfigValid = validateFirebaseConfig();
 
-// Firebase 설정
+// Firebase 설정 - 빌드 시점에서도 안전한 기본값 사용
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-key',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dummy-project',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy-bucket',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'dummy-sender',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'dummy-app'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'build-time-dummy',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'build-time-dummy.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'build-time-dummy',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'build-time-dummy.appspot.com',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:dummy'
 };
 
 console.log('🔍 최종 Firebase 설정:', {
@@ -70,16 +72,17 @@ let app;
 let db: Firestore | null = null;
 let storage: FirebaseStorage | null = null;
 
-if (isConfigValid) {
-  try {
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig);
-      console.log('🔥 Firebase 앱 초기화 완료');
-    } else {
-      app = getApps()[0];
-      console.log('🔥 기존 Firebase 앱 사용');
-    }
+try {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+    console.log('🔥 Firebase 앱 초기화 완료');
+  } else {
+    app = getApps()[0];
+    console.log('🔥 기존 Firebase 앱 사용');
+  }
 
+  // 실제 환경변수가 있을 때만 서비스 초기화
+  if (isConfigValid && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'build-time-dummy') {
     // Firestore 데이터베이스 초기화
     db = getFirestore(app);
     console.log('🗄️ Firestore 데이터베이스 초기화 완료');
@@ -87,17 +90,14 @@ if (isConfigValid) {
     // Firebase Storage 초기화
     storage = getStorage(app);
     console.log('📁 Firebase Storage 초기화 완료');
-  } catch (error: any) {
-    console.error('❌ Firebase 초기화 실패:', error);
-    throw error;
+  } else {
+    console.warn('⚠️ Firebase 서비스 초기화 건너뜀 (빌드 시점 또는 환경변수 누락)');
   }
-} else {
-  console.warn('⚠️ Firebase 설정이 유효하지 않아 초기화를 건너뜁니다.');
-  // 더미 앱 생성 (빌드 시 오류 방지)
-  try {
-    app = initializeApp(firebaseConfig);
-  } catch (error) {
-    console.warn('⚠️ 더미 Firebase 앱 생성 실패 (정상적인 동작)');
+} catch (error: any) {
+  console.error('❌ Firebase 초기화 실패:', error);
+  // 빌드 시점에서는 에러를 던지지 않음
+  if (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV) {
+    throw error;
   }
 }
 
