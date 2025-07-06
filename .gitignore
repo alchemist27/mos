@@ -1,3 +1,5 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # Dependencies
 node_modules/
 /.pnp
@@ -41,4 +43,7 @@ refresh_token.json
 
 # Logs
 logs
-*.log 
+*.log
+
+# Documentation files (local only)
+CAFE24_TOKEN_MANAGEMENT.md 
