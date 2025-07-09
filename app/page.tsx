@@ -341,37 +341,6 @@ service cloud.firestore {
             📊 상태 새로고침
           </button>
 
-          <button 
-            onClick={testApi}
-            disabled={loading || !tokenStatus?.valid}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: (loading || !tokenStatus?.valid) ? 'not-allowed' : 'pointer',
-              opacity: (loading || !tokenStatus?.valid) ? 0.6 : 1
-            }}
-          >
-            🧪 API 테스트
-          </button>
-
-          <button 
-            onClick={testProducts}
-            disabled={loading || !tokenStatus?.valid}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#fd7e14',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: (loading || !tokenStatus?.valid) ? 'not-allowed' : 'pointer',
-              opacity: (loading || !tokenStatus?.valid) ? 0.6 : 1
-            }}
-          >
-            🛍️ 상품 목록 테스트
-          </button>
         </div>
 
         {/* 추가 기능 */}
@@ -389,7 +358,7 @@ service cloud.firestore {
                 fontWeight: 'bold'
               }}
             >
-              🧪 상세 API 테스트 페이지로 이동
+              🧪 게시글 자동등록 API
             </a>
           </div>
         )}
