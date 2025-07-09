@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import Cafe24Client from '@/lib/cafe24Client'
-import { saveAccessToken, saveRefreshToken } from '@/lib/tokenStore'
+import { saveAccessToken, saveRefreshToken, getStoredAccessToken, getStoredRefreshToken } from '@/lib/tokenStore'
 
 async function handleCallback(request: NextRequest) {
   const url = new URL(request.url)
@@ -53,21 +53,56 @@ async function handleCallback(request: NextRequest) {
     console.log('🔗 사용할 redirect_uri:', redirectUri)
     
     // Authorization Code로 토큰 발급
+    console.log('🔄 토큰 발급 요청 중...')
     const tokenData = await client.getTokenFromCode(code, redirectUri)
+    console.log('✅ 토큰 발급 완료:', {
+      access_token: tokenData.access_token ? `${tokenData.access_token.substring(0, 20)}...` : 'null',
+      refresh_token: tokenData.refresh_token ? `${tokenData.refresh_token.substring(0, 20)}...` : 'null',
+      expires_in: tokenData.expires_in
+    })
     
     // 토큰 저장
+    console.log('💾 토큰 저장 시작...')
     await saveAccessToken(tokenData.access_token, tokenData.expires_in)
+    console.log('✅ Access Token 저장 완료')
+    
     await saveRefreshToken(tokenData.refresh_token)
+    console.log('✅ Refresh Token 저장 완료')
+    
+    // 저장된 토큰 검증
+    console.log('🔍 저장된 토큰 검증 중...')
+    const storedAccessToken = await getStoredAccessToken()
+    const storedRefreshToken = await getStoredRefreshToken()
+    
+    if (!storedAccessToken) {
+      console.error('❌ Access Token 저장 검증 실패')
+      const errorUrl = `https://mos-omega.vercel.app?error=${encodeURIComponent('토큰 저장 검증 실패')}`
+      return NextResponse.redirect(errorUrl)
+    }
+    
+    if (!storedRefreshToken) {
+      console.error('❌ Refresh Token 저장 검증 실패')
+      const errorUrl = `https://mos-omega.vercel.app?error=${encodeURIComponent('Refresh Token 저장 검증 실패')}`
+      return NextResponse.redirect(errorUrl)
+    }
     
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toLocaleString('ko-KR')
-    console.log(`✅ 토큰 발급 및 저장 완료 (만료: ${expiresAt})`)
+    console.log(`✅ 토큰 발급, 저장 및 검증 완료 (만료: ${expiresAt})`)
+    console.log('🔍 저장된 토큰 정보:', {
+      access_token_length: storedAccessToken.access_token.length,
+      expires_at: new Date(storedAccessToken.expires_at).toLocaleString('ko-KR'),
+      refresh_token_length: storedRefreshToken.length,
+      minutes_until_expiry: Math.floor((storedAccessToken.expires_at - Date.now()) / (1000 * 60))
+    })
     
     // 성공 페이지로 리디렉션
     const successUrl = 'https://mos-omega.vercel.app?success=true'
+    console.log('🔄 성공 페이지로 리디렉션:', successUrl)
     return NextResponse.redirect(successUrl)
     
   } catch (error: any) {
     console.error('❌ 인증 콜백 처리 실패:', error)
+    console.error('❌ 에러 스택:', error.stack)
     
     // 에러 페이지로 리디렉션
     const errorUrl = `https://mos-omega.vercel.app?error=${encodeURIComponent(error.message)}`

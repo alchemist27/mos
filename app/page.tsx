@@ -6,6 +6,58 @@ export default function Home() {
   const [tokenStatus, setTokenStatus] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  // URL 파라미터 확인 및 메시지 설정
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const success = urlParams.get('success')
+    const error = urlParams.get('error')
+    
+    if (success === 'true') {
+      setMessage('✅ 카페24 인증이 성공적으로 완료되었습니다!')
+      // URL에서 success 파라미터 제거
+      window.history.replaceState({}, '', window.location.pathname)
+      
+      // 토큰 상태 확인을 여러 번 재시도 (Firebase 전파 시간 고려)
+      const retryTokenCheck = async (attempt: number = 1, maxAttempts: number = 5) => {
+        console.log(`🔄 토큰 상태 확인 시도 ${attempt}/${maxAttempts}`)
+        
+        try {
+          const response = await fetch('/api/token/status')
+          const data = await response.json()
+          
+          if (data.valid) {
+            console.log('✅ 토큰 상태 확인 성공')
+            setTokenStatus(data)
+            return
+          }
+          
+          if (attempt < maxAttempts) {
+            console.log(`⏳ 토큰이 아직 유효하지 않음, ${2 * attempt}초 후 재시도...`)
+            setTimeout(() => retryTokenCheck(attempt + 1, maxAttempts), 2000 * attempt)
+          } else {
+            console.warn('⚠️ 최대 재시도 횟수 초과, 일반 토큰 상태 확인 실행')
+            checkTokenStatus()
+          }
+        } catch (error) {
+          console.error(`❌ 토큰 상태 확인 시도 ${attempt} 실패:`, error)
+          if (attempt < maxAttempts) {
+            setTimeout(() => retryTokenCheck(attempt + 1, maxAttempts), 2000 * attempt)
+          } else {
+            checkTokenStatus()
+          }
+        }
+      }
+      
+      // 첫 번째 시도는 1초 후
+      setTimeout(() => retryTokenCheck(), 1000)
+    } else if (error) {
+      setError(`❌ 인증 실패: ${decodeURIComponent(error)}`)
+      // URL에서 error 파라미터 제거
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   // 토큰 상태 확인
   const checkTokenStatus = async () => {
@@ -30,6 +82,8 @@ export default function Home() {
   // 카페24 인증 시작
   const startAuth = async () => {
     setLoading(true)
+    setMessage(null)
+    setError(null)
     try {
       const response = await fetch('/api/auth/url')
       const data = await response.json()
@@ -49,18 +103,20 @@ export default function Home() {
   // 토큰 수동 갱신
   const refreshToken = async () => {
     setLoading(true)
+    setMessage(null)
+    setError(null)
     try {
       const response = await fetch('/api/token/refresh', { method: 'POST' })
       const data = await response.json()
       
       if (response.ok) {
-        alert('토큰 갱신 성공')
+        setMessage('✅ 토큰 갱신이 성공적으로 완료되었습니다!')
         checkTokenStatus()
       } else {
-        alert(`토큰 갱신 실패: ${data.error}`)
+        setError(`❌ 토큰 갱신 실패: ${data.error}`)
       }
     } catch (error) {
-      alert('토큰 갱신 실패')
+      setError('❌ 토큰 갱신 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
     }
@@ -69,18 +125,20 @@ export default function Home() {
   // 카페24 API 테스트
   const testApi = async () => {
     setLoading(true)
+    setMessage(null)
+    setError(null)
     try {
       const response = await fetch('/api/test')
       const data = await response.json()
       
       if (response.ok) {
-        alert(`API 테스트 성공!\n\n쇼핑몰: ${data.data?.shop?.shop_name || '정보 없음'}\n응답 시간: ${data.timestamp}`)
+        setMessage(`✅ API 테스트 성공!\n쇼핑몰: ${data.data?.shop?.shop_name || '정보 없음'}`)
         console.log('카페24 API 응답:', data)
       } else {
-        alert(`API 테스트 실패: ${data.error}`)
+        setError(`❌ API 테스트 실패: ${data.error}`)
       }
     } catch (error) {
-      alert('API 테스트 실패')
+      setError('❌ API 테스트 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
     }
@@ -89,18 +147,20 @@ export default function Home() {
   // 상품 목록 테스트
   const testProducts = async () => {
     setLoading(true)
+    setMessage(null)
+    setError(null)
     try {
       const response = await fetch('/api/test/products')
       const data = await response.json()
       
       if (response.ok) {
-        alert(`상품 목록 조회 성공!\n\n상품 개수: ${data.productCount}개\n응답 시간: ${data.timestamp}`)
+        setMessage(`✅ 상품 목록 조회 성공!\n상품 개수: ${data.productCount}개`)
         console.log('카페24 상품 목록:', data)
       } else {
-        alert(`상품 목록 조회 실패: ${data.error}`)
+        setError(`❌ 상품 목록 조회 실패: ${data.error}`)
       }
     } catch (error) {
-      alert('상품 목록 조회 실패')
+      setError('❌ 상품 목록 조회 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
     }
@@ -131,6 +191,21 @@ export default function Home() {
           카페24 Admin API 토큰 관리 및 자동 갱신 시스템
         </p>
 
+        {/* 성공 메시지 표시 */}
+        {message && (
+          <div style={{ 
+            backgroundColor: '#d4edda', 
+            color: '#155724',
+            padding: '1rem', 
+            borderRadius: '4px',
+            marginBottom: '2rem',
+            border: '1px solid #c3e6cb'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0' }}>🎉 성공!</h4>
+            <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{message}</p>
+          </div>
+        )}
+
         {/* 에러 메시지 표시 */}
         {error && (
           <div style={{ 
@@ -142,7 +217,7 @@ export default function Home() {
             border: '1px solid #f5c6cb'
           }}>
             <h4 style={{ margin: '0 0 0.5rem 0' }}>🚫 오류 발생</h4>
-            <p style={{ margin: 0 }}>{error}</p>
+            <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{error}</p>
             {error.includes('Firebase 권한') && (
               <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
                 <strong>해결 방법:</strong>
