@@ -83,13 +83,23 @@ export async function POST(request: NextRequest) {
 
     // 첨부파일이 있는 경우에만 추가 (빈 배열 전송 방지)
     if (attachFileUrls && attachFileUrls.length > 0) {
-      // 첨부파일 URL 유효성 검증
-      const validUrls = attachFileUrls.filter((url: string) => 
-        url && typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))
-      )
+      // 첨부파일 URL 유효성 검증 및 카페24 API 형식으로 변환
+      const validAttachFiles = attachFileUrls
+        .filter((url: string) => 
+          url && typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))
+        )
+        .map((url: string) => {
+          // URL에서 파일명 추출
+          const fileName = url.split('/').pop() || 'attachment'
+          return {
+            name: fileName,
+            url: url
+          }
+        })
       
-      if (validUrls.length > 0) {
-        requestData.attach_file_urls = validUrls
+      if (validAttachFiles.length > 0) {
+        requestData.attach_file_urls = validAttachFiles
+        console.log('📎 첨부파일 변환 완료:', validAttachFiles)
       }
     }
 
