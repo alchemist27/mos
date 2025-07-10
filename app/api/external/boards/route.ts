@@ -52,42 +52,55 @@ export async function POST(request: NextRequest) {
     console.log('- Writer:', writer)
     console.log('- Title:', title)
     console.log('- Category:', category)
+    console.log('- Attach File URLs:', attachFileUrls)
     console.log('- Referer:', request.headers.get('referer'))
     console.log('- User-Agent:', request.headers.get('user-agent'))
 
     const client = new Cafe24Client()
 
     // 카페24 API 요청 데이터 구성
-    const payload = {
-      "shop_no": 1,
-      "requests": [
-        {
-          "writer": writer,
-          "title": title,
-          "content": content,
-          "client_ip": request.headers.get('x-forwarded-for') || 
-                      request.headers.get('x-real-ip') || 
-                      '127.0.0.1',
-          "board_category_no": parseInt(category),
-          "secret": isSecret ? "T" : "F",
-          "writer_email": writerEmail || "sample@sample.com",
-          "member_id": memberId || "external_user",
-          "nick_name": nickName || writer,
-          "deleted": "F",
-          "input_channel": "P",
-          "notice": isNotice ? "T" : "F",
-          "fixed": "F",
-          "reply": "F",
-          "reply_mail": "N",
-          "reply_user_id": "admin",
-          "reply_status": "C",
-          ...(attachFileUrls.length > 0 && {
-            "attach_file_urls": attachFileUrls
-          })
-        }
-      ]
+    const requestData: any = {
+      "writer": writer,
+      "title": title,
+      "content": content,
+      "client_ip": request.headers.get('x-forwarded-for') || 
+                  request.headers.get('x-real-ip') || 
+                  '127.0.0.1',
+      "board_category_no": parseInt(category),
+      "secret": isSecret ? "T" : "F",
+      "writer_email": writerEmail || "sample@sample.com",
+      "member_id": memberId || "external_user",
+      "nick_name": nickName || writer,
+      "deleted": "F",
+      "input_channel": "P",
+      "notice": isNotice ? "T" : "F",
+      "fixed": "F",
+      "reply": "F",
+      "reply_mail": "N",
+      "reply_user_id": "admin",
+      "reply_status": "C"
     }
 
+    // 첨부파일이 있는 경우에만 추가 (빈 배열 전송 방지)
+    if (attachFileUrls && attachFileUrls.length > 0) {
+      // 첨부파일 URL 유효성 검증
+      const validUrls = attachFileUrls.filter((url: string) => 
+        url && typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))
+      )
+      
+      if (validUrls.length > 0) {
+        requestData.attach_file_urls = validUrls
+      }
+    }
+
+    const payload = {
+      "shop_no": 1,
+      "requests": [requestData]
+    }
+
+    // 카페24 API 호출 전 최종 payload 로깅
+    console.log('📤 카페24 API 최종 요청 데이터:', JSON.stringify(payload, null, 2))
+    
     // 카페24 API 호출
     const result = await client.apiRequest(`/api/v2/admin/boards/${boardNo}/articles`, {
       method: 'POST',
