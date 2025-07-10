@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     console.log('- Referer:', request.headers.get('referer'))
 
     // Firebase Cloud Function 호출
-    const firebaseResponse = await fetch('https://us-central1-teejoa-ai.cloudfunctions.net/uploadFile', {
+    const firebaseResponse = await fetch('https://us-central1-tijuri-admin.cloudfunctions.net/uploadFile', {
       method: 'POST',
       headers: {
         'Content-Type': contentType,
