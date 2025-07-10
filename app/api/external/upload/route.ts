@@ -24,26 +24,50 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${new Date().toISOString()}] 📤 파일 업로드 프록시 요청`)
 
-    // 요청 본문을 그대로 Firebase Cloud Function으로 전달
-    const body = await request.arrayBuffer()
-    const contentType = request.headers.get('content-type') || 'application/octet-stream'
+    // FormData에서 파일과 파일명 추출
+    const formData = await request.formData()
+    const file = formData.get('file') as File
+    const fileName = formData.get('fileName') as string || file?.name || 'unnamed_file'
+
+    if (!file) {
+      return NextResponse.json({
+        success: false,
+        error: '파일이 업로드되지 않았습니다.',
+        timestamp: new Date().toISOString()
+      }, { status: 400, headers })
+    }
 
     console.log('📋 요청 정보:')
-    console.log('- Content-Type:', contentType)
-    console.log('- Body Size:', body.byteLength, 'bytes')
+    console.log('- File Name:', fileName)
+    console.log('- File Size:', file.size, 'bytes')
+    console.log('- File Type:', file.type)
     console.log('- Referer:', request.headers.get('referer'))
+
+    // 파일을 Base64로 변환
+    const arrayBuffer = await file.arrayBuffer()
+    const base64Data = Buffer.from(arrayBuffer).toString('base64')
+
+    // Firebase Cloud Function에 맞는 형식으로 변환
+    const firebasePayload = {
+      fileName: fileName,
+      base64Data: base64Data
+    }
+
+    console.log('📤 Firebase 요청 데이터:')
+    console.log('- fileName:', fileName)
+    console.log('- base64Data length:', base64Data.length)
 
     // Firebase Cloud Function 호출
     const firebaseResponse = await fetch('https://us-central1-tijuri-admin.cloudfunctions.net/uploadFile', {
       method: 'POST',
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': 'application/json',
         // 기타 필요한 헤더들 전달
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!
         })
       },
-      body: body
+      body: JSON.stringify(firebasePayload)
     })
 
     console.log('📥 Firebase 응답:')
