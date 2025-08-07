@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       memberId,
       nickName,
       isSecret = false,
+      password = '', // 게시물 비밀번호 (4자리 숫자)
       isNotice = false,
       attachFileUrls = []
     } = body
@@ -52,6 +53,8 @@ export async function POST(request: NextRequest) {
     console.log('- Writer:', writer)
     console.log('- Title:', title)
     console.log('- Category:', category)
+    console.log('- Is Secret:', isSecret)
+    console.log('- Has Password:', password ? 'Yes' : 'No')
     console.log('- Attach File URLs:', attachFileUrls)
     console.log('- Referer:', request.headers.get('referer'))
     console.log('- User-Agent:', request.headers.get('user-agent'))
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
                   request.headers.get('x-real-ip') || 
                   '127.0.0.1',
       "board_category_no": parseInt(category),
-      "secret": isSecret ? "T" : "F",
+      "secret": (isSecret || password) ? "T" : "F", // 비밀번호가 있으면 자동으로 비밀글
       "writer_email": writerEmail || "sample@sample.com",
       "member_id": memberId || "external_user",
       "nick_name": nickName || writer,
@@ -79,6 +82,11 @@ export async function POST(request: NextRequest) {
       "reply_mail": "N",
       "reply_user_id": "admin",
       "reply_status": "C"
+    }
+
+    // 비밀번호가 있으면 추가 (카페24 공식 필드명: password)
+    if (password) {
+      requestData.password = password
     }
 
     // 첨부파일이 있는 경우에만 추가 (빈 배열 전송 방지)
