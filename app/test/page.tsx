@@ -129,7 +129,7 @@ export default function TestPage() {
             "reply": "F",
             "reply_mail": "N",
             "reply_user_id": "admin",
-            "reply_status": "C",
+            "reply_status": "N",
             ...(attachedFiles.length > 0 && {
               "attach_file_urls": attachedFiles
             })
@@ -149,6 +149,26 @@ export default function TestPage() {
       })
       
       const data = await res.json()
+      
+      // 응답 데이터 로깅
+      console.log('📡 API 응답 받음:', data)
+      
+      // 상세 응답 정보 로깅
+      if (data.success && data.data && data.data.articles) {
+        const article = data.data.articles[0]
+        console.log('📋 등록된 게시물 상세:')
+        console.log('- Article No:', article?.no)
+        console.log('- Reply Status:', article?.reply_status)
+        console.log('- Secret:', article?.secret)
+        console.log('- Category:', article?.board_category_no)
+        console.log('- 요청한 reply_status:', 'N')
+        console.log('- 응답받은 reply_status:', article?.reply_status)
+        
+        if (article?.reply_status !== 'N') {
+          console.warn('⚠️ reply_status 불일치! 요청: N, 응답:', article?.reply_status)
+        }
+      }
+      
       setResponse(data)
       
       // 성공시 폼 초기화

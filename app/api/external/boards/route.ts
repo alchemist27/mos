@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       "reply": "F",
       "reply_mail": "N",
       "reply_user_id": "admin",
-      "reply_status": "C"
+      "reply_status": "N"
     }
 
     // 비밀번호가 있으면 추가 (카페24 공식 필드명: password)
@@ -126,6 +126,18 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('✅ 외부 게시물 등록 성공:', result)
+    
+    // 응답 데이터 상세 로깅
+    if (result.articles && result.articles.length > 0) {
+      const article = result.articles[0]
+      console.log('📋 등록된 게시물 상세 정보:')
+      console.log('- Article No:', article.no)
+      console.log('- Reply Status:', article.reply_status)
+      console.log('- Secret:', article.secret)
+      console.log('- Category:', article.board_category_no)
+      console.log('- Title:', article.title)
+      console.log('- Writer:', article.writer)
+    }
 
     return NextResponse.json({
       success: true,
